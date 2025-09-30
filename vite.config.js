@@ -1,67 +1,63 @@
-import { defineConfig } from "vite";
-import laravel from "laravel-vite-plugin";
-import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
-import viteCompression from "vite-plugin-compression";
-import ViteImagemin from "vite-plugin-imagemin";
+import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite';
+import laravel from 'laravel-vite-plugin';
+import react from '@vitejs/plugin-react';
+import { imagetools } from 'vite-imagetools';
+import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig({
-    plugins: [
-        laravel({
-            input: ["resources/css/app.css", "resources/js/app.jsx"],
-            refresh: true,
-        }),
-        tailwindcss(),
-        react(),
+  plugins: [
+    laravel({
+      input: ['resources/css/app.css', 'resources/js/app.jsx'],
+      refresh: true,
+    }),
+    react(),
+    tailwindcss(),
+    // optimasi gambar modern
+    imagetools(),
 
-        // Plugin untuk auto-compress file (gzip + brotli)
-        viteCompression({
-            algorithm: "brotliCompress", // bisa 'gzip' atau 'brotliCompress'
-            ext: ".br", // ekstensi file brotli
-            threshold: 1024, // hanya file >1KB yang di-compress
-            deleteOriginFile: false, // jangan hapus file asli
-        }),
-        viteCompression({
-            algorithm: "gzip",
-            ext: ".gz",
-            threshold: 1024,
-            deleteOriginFile: false,
-        }),
+    // compress final bundle (gzip + brotli)
+    viteCompression({
+      algorithm: 'brotliCompress',
+      ext: '.br',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 1024,
+      deleteOriginFile: false,
+    }),
+  ],
 
-        // Plugin optimasi gambar (JPEG, PNG, SVG, GIF)
-        ViteImagemin({
-            gifsicle: {
-                optimizationLevel: 7,
-                interlaced: false,
-            },
-            optipng: {
-                optimizationLevel: 7,
-            },
-            mozjpeg: {
-                quality: 75, // sesuaikan kualitas
-            },
-            pngquant: {
-                quality: [0.65, 0.8],
-                speed: 4,
-            },
-            svgo: {
-                plugins: [
-                    { name: "removeViewBox" },
-                    { name: "removeEmptyAttrs", active: false },
-                ],
-            },
-        }),
-    ],
-
-    build: {
-        sourcemap: false,
-        chunkSizeWarningLimit: 600, // naikkan limit agar tidak ada warning chunk besar
-        rollupOptions: {
-            output: {
-                manualChunks: {
-                    react: ["react", "react-dom"],
-                },
-            },
+  build: {
+    target: 'esnext', // target browser modern
+    sourcemap: false,
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
+      },
     },
+    // menegaskan lokasi cache (jika diperlukan)
+    cacheDir: '.vite_cache',
+  },
+
+  resolve: {
+    alias: {
+      '@': '/resources/js', // contoh alias
+    },
+  },
+
+  // opsi optimasi dependensi
+  optimizeDeps: {
+    // jika ada paket yang membutuhkan interop, tambahkan ke needsInterop
+    needsInterop: ['some-legacy-pkg'],
+  },
 });
